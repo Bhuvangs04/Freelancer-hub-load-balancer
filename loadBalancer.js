@@ -1,7 +1,7 @@
 const express = require("express");
 require("dotenv").config();
 const httpProxy = require("http-proxy");
-const http = require("http");
+const https = require("https"); // Use for HTTPS requests
 const cookieParser = require("cookie-parser");
 const crypto = require("crypto");
 const logger = require("./utils/logger");
@@ -11,7 +11,6 @@ const servers = require("./config/server");
 
 const app = express();
 const proxy = httpProxy.createProxyServer();
-
 
 const COOKIE_NAME = "Server_Id";
 const SECRET_KEY = crypto
@@ -95,7 +94,7 @@ app.use((req, res, next) => {
 // Periodic health checks
 setInterval(() => healthCheck(servers), 10000);
 
-const agent = new http.Agent({
+const agent = new https.Agent({
   keepAlive: true,
   maxSockets: 100,
   maxFreeSockets: 10,
