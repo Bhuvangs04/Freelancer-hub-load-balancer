@@ -15,8 +15,10 @@ const cors = require("cors");
 
 // Define allowed origins
 const allowedOrigins = [
-  "https://freelancerhub-five.vercel.app/",
-  "https://freelancer-admin.vercel.app/",
+  "https://freelancerhub-five.vercel.app", // No trailing slash
+  "https://freelancerhub-five.vercel.app/", // With trailing slash
+  "https://freelancer-admin.vercel.app", // No trailing slash
+  "https://freelancer-admin.vercel.app/", // With trailing slash
 ];
 
 const corsOptions = {
@@ -28,13 +30,15 @@ const corsOptions = {
     }
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-  credentials: true, // Allow cookies and authentication headers
+  credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization"], // Add headers your app uses // Allow cookies and authentication headers
 };
 
 // Use CORS middleware
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
-
+app.options("*", cors(corsOptions), (req, res) => {
+  res.status(200).end(); // Respond to preflight requests
+});
 const COOKIE_NAME = "Server_Id";
 const SECRET_KEY = crypto
   .createHash("sha256")
@@ -181,6 +185,8 @@ app.use((req, res) => {
       }
     }
   );
+  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
 });
 
 // Handle proxy errors
