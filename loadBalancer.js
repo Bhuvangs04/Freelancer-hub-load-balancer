@@ -15,8 +15,8 @@ const cors = require("cors");
 
 // Define allowed origins
 const allowedOrigins = [
-  "https://freelancerhub-five.vercel.app",
-  "https://freelancer-admin.vercel.app",
+  "https://freelancerhub-five.vercel.app/",
+  "https://freelancer-admin.vercel.app/",
 ];
 
 const corsOptions = {
