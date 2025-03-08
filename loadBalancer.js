@@ -11,6 +11,29 @@ const servers = require("./config/server");
 
 const app = express();
 const proxy = httpProxy.createProxyServer();
+const cors = require("cors");
+
+// Define allowed origins
+const allowedOrigins = [
+  "https://freelancerhub-five.vercel.app",
+  "https://freelancer-admin.vercel.app",
+];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  credentials: true, // Allow cookies and authentication headers
+};
+
+// Use CORS middleware
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 const COOKIE_NAME = "Server_Id";
 const SECRET_KEY = crypto
@@ -128,7 +151,11 @@ app.use((req, res) => {
       return res.status(503).send("Service Unavailable");
     }
     const encryptedServer = encrypt(assignedServer.url);
-    res.cookie(COOKIE_NAME, encryptedServer, { httpOnly: true });
+    res.cookie(COOKIE_NAME, encryptedServer, {
+      httpOnly: true, // Prevents client-side access to the cookie
+      secure: true, // Ensures cookies are only sent over HTTPS
+      sameSite: "None", // Required for cross-origin requests
+    });
     logger.info(`Assigned new sticky server: ${assignedServer.url}`);
   } else {
     logger.info(`Sticky session for ${assignedServer.url}`);
@@ -143,13 +170,15 @@ app.use((req, res) => {
   proxy.web(
     req,
     res,
-    { target: assignedServer.url, changeOrigin: true, agent },
+    { target: assignedServer.url, changeOrigin: true, agent, secure: true },
     (err) => {
       assignedServer.connections--;
       logger.error(
         `[PROXY ERROR]: Failed to forward to ${assignedServer.url}. Error: ${err.message}`
       );
-      res.status(500).send("Error forwarding the request.");
+      if (!res.headersSent) {
+        res.status(502).json({ error: "Bad Gateway", message: err.message });
+      }
     }
   );
 });
