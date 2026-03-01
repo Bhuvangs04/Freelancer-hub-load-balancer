@@ -1,102 +1,38 @@
-## LOAD BALANCER 
+## LOAD BALANCER
 
-### Table of Contents
+### Overview
 
-1. [Overview](#overview)
-2. [Features](#features)
-3. [Prerequisites](#prerequisites)
-4. [Installation](#installation)
-5. [Usage](#usage)
-6. [Security Features](#security-features)
-7. [Logging](#logging)
-8. [Health Checks](#health-checks)
-9. [License](#license)
+This project implements an Express-based load balancer with least-connections routing, sticky sessions, health checks, and baseline edge hardening.
 
+### Current behavior
 
+- Least-connections routing over active backends.
+- Sticky session affinity via signed `LB_Affinity` cookie (opaque backend ID, no backend URL leakage).
+- Health checks against `/health` with timeout control.
+- Rate limiting with temporary IP blocking and periodic in-memory cleanup.
+- Upstream auth header support via `UPSTREAM_SHARED_SECRET`.
 
-## Overview
-
-This project implements a load balancer using Node.js and Express. It distributes incoming traffic across multiple backend servers using round-robin and sticky session mechanisms. It also includes security features such as rate limiting, IP blocking, and encrypted session management.
-
-## Features
-
-🚀 **Round-robin load balancing**
-
-🍪 **Sticky sessions using encrypted cookies**
-
-🛡️ **Rate limiting and IP blocking**
-
-🩺 **Health check monitoring for backend servers**
-
-🔒 **Secure proxy with Helmet and custom security headers**
-
-🔄 **Periodic unblocking of IPs**
-
-## Prerequisites
-
-- Node.js (>=14.x)
-- npm or yarn
-- Environment variables configured in a .env file
-
-## Installation
-
-Clone the repository:
-
-```bash
-git clone <repository-url>
-cd <repository-folder>
-```
-
-Install dependencies:
-
-```bash
-npm install
-```
-
-Create a .env file with the required environment variables:
+### Environment variables
 
 ```env
 LOAD_BALANCER_PORT=4000
-ENCRYPTION_KEY=your_secret_key
+ALLOWED_ORIGINS=https://freelancerhub-five.vercel.app,https://freelancer-admin.vercel.app
+BACKEND_URLS=https://backend-1.internal,https://backend-2.internal
+STICKY_SECRET=replace_me
+UPSTREAM_SHARED_SECRET=optional_shared_secret
+RATE_LIMIT=150
+RATE_WINDOW_MS=60000
+BLOCK_TTL_MS=600000
+HEALTH_CHECK_INTERVAL_MS=10000
+HEALTH_CHECK_TIMEOUT_MS=2500
+PROXY_TIMEOUT_MS=10000
+CLIENT_TIMEOUT_MS=12000
+MAX_UPSTREAM_SOCKETS=500
+MAX_FREE_SOCKETS=100
 ```
 
-Configure backend servers in `config/server.js`:
+### Notes for production
 
-```javascript
-module.exports = [
-    { url: "http://localhost:5000", active: true },
-    { url: "http://localhost:5001", active: true }
-];
-```
-
-## Usage
-
-To start the load balancer, run:
-
-```bash
-npm start
-```
-
-This will launch the load balancer on the specified port.
-
-## Security Features
-
-- **Rate Limiting**: Limits requests to prevent abuse (100 requests per minute per IP).
-- **IP Blocking**: Blocks abusive IPs temporarily.
-- **Sticky Sessions**: Ensures a user remains connected to the same backend server using encrypted cookies.
-- **Secure Headers**: Uses helmet to set security-related HTTP headers.
-
-## Logging
-
-Logs are generated for debugging and monitoring purposes using the custom logger located in `utils/logger.js`.
-
-## Health Checks
-
-The load balancer periodically checks the health of backend servers every 10 seconds.
-
-## License
-
-This project is open-source and available under the MIT License.
-
-
-
+- Prefer private backend networking and firewall allowlisting to prevent direct origin access.
+- Use distributed rate limiting (Redis/edge) when running multiple instances.
+- Add centralized observability (metrics, tracing, structured logs).
