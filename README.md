@@ -29,6 +29,7 @@ PROXY_TIMEOUT_MS=10000
 CLIENT_TIMEOUT_MS=12000
 MAX_UPSTREAM_SOCKETS=500
 MAX_FREE_SOCKETS=100
+TRUST_PROXY=loopback,linklocal,uniquelocal
 ```
 
 ### Notes for production
