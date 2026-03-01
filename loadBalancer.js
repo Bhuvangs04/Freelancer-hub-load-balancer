@@ -47,6 +47,7 @@ const BLOCK_TTL_MS = Number(process.env.BLOCK_TTL_MS || 10 * 60 * 1000);
 const HEALTH_CHECK_INTERVAL_MS = Number(process.env.HEALTH_CHECK_INTERVAL_MS || 10000);
 const CLEANUP_INTERVAL_MS = Number(process.env.CLEANUP_INTERVAL_MS || 30000);
 const STICKY_SECRET = process.env.STICKY_SECRET || process.env.ENCRYPTION_KEY;
+const TRUST_PROXY = process.env.TRUST_PROXY;
 
 if (!STICKY_SECRET) {
   throw new Error("Missing STICKY_SECRET (or ENCRYPTION_KEY fallback)");
@@ -55,7 +56,24 @@ if (!STICKY_SECRET) {
 const requestCounts = new Map();
 const blockedIPs = new Map();
 
-app.set("trust proxy", true);
+if (TRUST_PROXY !== undefined) {
+  const normalizedTrustProxy = TRUST_PROXY.trim().toLowerCase();
+
+  if (normalizedTrustProxy === "true") {
+    app.set("trust proxy", true);
+  } else if (normalizedTrustProxy === "false") {
+    app.set("trust proxy", false);
+  } else if (/^\d+$/.test(normalizedTrustProxy)) {
+    app.set("trust proxy", Number(normalizedTrustProxy));
+  } else {
+    app.set(
+      "trust proxy",
+      TRUST_PROXY.split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+    );
+  }
+}
 app.use(helmet());
 app.use(cookieParser());
 app.use(cors(corsOptions));
@@ -190,12 +208,15 @@ app.use((req, res) => {
 
   assignedServer.connections += 1;
 
+  let released = false;
   const releaseConnection = () => {
+    if (released) return;
+    released = true;
     assignedServer.connections = Math.max(0, assignedServer.connections - 1);
   };
 
-  res.on("close", releaseConnection);
-  res.on("finish", releaseConnection);
+  res.once("close", releaseConnection);
+  res.once("finish", releaseConnection);
 
   proxy.web(req, res, {
     target: assignedServer.url,
