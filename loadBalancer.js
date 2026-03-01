@@ -149,11 +149,11 @@ setInterval(() => {
   healthCheck(servers);
 }, HEALTH_CHECK_INTERVAL_MS);
 
-proxy.on("proxyReq", (proxyReq) => {
+proxy.on("proxyReq", (proxyReq, req) => {
   if (process.env.UPSTREAM_SHARED_SECRET) {
     proxyReq.setHeader("x-lb-auth", process.env.UPSTREAM_SHARED_SECRET);
   }
-  proxyReq.setHeader("x-forwarded-proto", "https");
+  proxyReq.setHeader("x-forwarded-proto", req.protocol || "https");
 });
 
 proxy.on("error", (err, req, res) => {
@@ -190,7 +190,10 @@ app.use((req, res) => {
 
   assignedServer.connections += 1;
 
+  let released = false;
   const releaseConnection = () => {
+    if (released) return;
+    released = true;
     assignedServer.connections = Math.max(0, assignedServer.connections - 1);
   };
 
